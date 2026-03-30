@@ -10,9 +10,12 @@ import OrderTracking from './pages/OrderTracking'
 import SpringOuting from './pages/SpringOuting'
 import { supabase } from './lib/supabase'
 
+import { RoomProvider } from './contexts/RoomContext'
+
 function App() {
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [loginRequired, setLoginRequired] = useState(false)
 
   useEffect(() => {
     // Check existing session
@@ -46,24 +49,41 @@ function App() {
     )
   }
 
-  if (!user) {
-    return <LoginPage onLogin={setUser} />
-  }
-
   return (
     <BrowserRouter basename="/Qingming">
-      <div className="app-container">
-        <Routes>
-          <Route path="/" element={<HomePage user={user} />} />
-          <Route path="/memorial" element={<MemorialWall user={user} />} />
-          <Route path="/shop" element={<RitualShop user={user} />} />
-          <Route path="/altar" element={<VirtualAltar user={user} />} />
-          <Route path="/order" element={<OrderTracking />} />
-          <Route path="/spring" element={<SpringOuting />} />
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-      </div>
-      <BottomNav />
+      <RoomProvider>
+        <div className={user ? "mobile-container app-container" : "landing-container"}>
+          <Routes>
+            {/* Public Landing / Dashboard */}
+            <Route path="/family/:roomId" element={<HomePage user={user} onLogin={() => setLoginRequired(true)} />} />
+            <Route path="/" element={<HomePage user={user} onLogin={() => setLoginRequired(true)} />} />
+            
+            {/* Protected Routes */}
+            <Route path="/memorial" element={user ? <MemorialWall user={user} /> : <Navigate to="/" replace />} />
+            <Route path="/shop" element={user ? <RitualShop user={user} /> : <Navigate to="/" replace />} />
+            <Route path="/altar" element={user ? <VirtualAltar user={user} /> : <Navigate to="/" replace />} />
+            <Route path="/order" element={user ? <OrderTracking user={user} /> : <Navigate to="/" replace />} />
+            <Route path="/spring" element={user ? <SpringOuting user={user} /> : <Navigate to="/" replace />} />
+            <Route path="/login" element={<LoginPage onLogin={setUser} />} />
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+          
+          {user && <BottomNav />}
+          
+          {/* Overlay Login if triggered from landing */}
+          {!user && loginRequired && (
+            <div style={{ position: 'fixed', inset: 0, zIndex: 2000, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <div style={{ width: '100%', maxWidth: '400px', background: 'white', borderRadius: '24px', position: 'relative', overflow: 'hidden' }}>
+                <button 
+                  onClick={() => setLoginRequired(false)}
+                  style={{ position: 'absolute', top: '16px', right: '16px', border: 'none', background: 'none', fontSize: '1.5rem', cursor: 'pointer' }}
+                >✕</button>
+                <LoginPage onLogin={(u) => { setUser(u); setLoginRequired(false); }} />
+              </div>
+            </div>
+          )}
+        </div>
+      </RoomProvider>
     </BrowserRouter>
   )
 }

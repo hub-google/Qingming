@@ -1,87 +1,60 @@
-const SPRING_ITEMS = [
-  {
-    category: '🛡 旅遊保險',
-    items: [
-      {
-        id: 1,
-        icon: '🛡',
-        title: '國泰旅平險・清明限定',
-        desc: '清明掃墓途中意外保障，最高 300 萬理賠，一鍵投保 5 分鐘搞定。',
-        tag: '推薦',
-        affiliate: 'https://insurance.example.com?utm_source=qingming&utm_medium=app&utm_campaign=qingming2026&utm_term=travel',
-      },
-      {
-        id: 2,
-        icon: '🏥',
-        title: '全家醫療保障方案',
-        desc: '特別設計給出席掃墓的家族成員，含意外與突發疾病保障。',
-        tag: '家族首選',
-        affiliate: 'https://insurance.example.com/family?utm_source=qingming&utm_medium=app&utm_campaign=qingming2026&utm_term=family',
-      },
-    ]
-  },
-  {
-    category: '🚗 租車服務',
-    items: [
-      {
-        id: 3,
-        icon: '🚙',
-        title: 'iRent 清明特惠租車',
-        desc: '家族出遊首選，7 人座 MPV 一日只要 NT$ 2,500，含清明免費升等。',
-        tag: '限時折扣',
-        affiliate: 'https://irent.example.com?utm_source=qingming&utm_medium=app&utm_campaign=qingming2026&utm_term=car',
-      },
-      {
-        id: 4,
-        icon: '🚌',
-        title: '葛瑪蘭・清明包車',
-        desc: '10~20 人大家族掃墓包車，專屬司機導覽，安心又省事。',
-        tag: '大家族',
-        affiliate: 'https://bus.example.com?utm_source=qingming&utm_medium=app&utm_campaign=qingming2026&utm_term=bus',
-      },
-    ]
-  },
-  {
-    category: '🍽 家族餐廳',
-    items: [
-      {
-        id: 5,
-        icon: '🍜',
-        title: '欣葉台菜・家族聚餐包廂',
-        desc: '清明掃墓後家族聚餐首選，預訂清明特惠套餐享 9 折優惠。',
-        tag: '限量訂位',
-        affiliate: 'https://restaurant.example.com?utm_source=qingming&utm_medium=app&utm_campaign=qingming2026&utm_term=restaurant',
-      },
-      {
-        id: 6,
-        icon: '🥢',
-        title: '鼎泰豐・特別預訂通道',
-        desc: '透過專屬連結享免排隊特殊預約席，清明節日限額 20 組。',
-        tag: '免排隊',
-        affiliate: 'https://dtf.example.com?utm_source=qingming&utm_medium=app&utm_campaign=qingming2026&utm_term=dtf',
-      },
-    ]
-  },
-  {
-    category: '🏨 春遊住宿',
-    items: [
-      {
-        id: 7,
-        icon: '🏨',
-        title: '礁溪老爺・清明溫泉包',
-        desc: '掃墓後帶著家人泡溫泉放鬆！清明夜晚 NT$ 3,888 起，含早餐。',
-        tag: '春遊推薦',
-        affiliate: 'https://hotel.example.com?utm_source=qingming&utm_medium=app&utm_campaign=qingming2026&utm_term=hotel',
-      },
-    ]
-  },
-]
+import { useState, useEffect } from 'react'
+import { supabase } from '../lib/supabase'
+import { useRoom } from '../contexts/RoomContext'
 
 function SpringOuting() {
+  const { roomId } = useRoom()
+  const [springItems, setSpringItems] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [lead, setLead] = useState({ name: '', phone: '' })
+  const [submitting, setSubmitting] = useState(false)
+  const [message, setMessage] = useState(null)
+
+  useEffect(() => {
+    fetchItems()
+  }, [])
+
+  const fetchItems = async () => {
+    setLoading(true)
+    const { data } = await supabase
+      .from('QingMing_affiliate_links')
+      .select('*')
+      .eq('is_active', true)
+    
+    if (data) {
+      // Group by category
+      const grouped = data.reduce((acc, item) => {
+        const cat = item.category || '其他推薦'
+        if (!acc[cat]) acc[cat] = []
+        acc[cat].push(item)
+        return acc
+      }, {})
+      setSpringItems(Object.entries(grouped).map(([category, items]) => ({ category, items })))
+    }
+    setLoading(false)
+  }
+
   const handleAffiliate = (url, title) => {
-    // In prod: log click with UTM to analytics, then open
     console.log(`Affiliate click: ${title}`)
     window.open(url, '_blank')
+  }
+
+  const handleLeadSubmit = async () => {
+    if (!lead.name || !lead.phone) return
+    setSubmitting(true)
+    const { error } = await supabase.from('QingMing_leads').insert({
+      family_room_id: roomId,
+      name: lead.name,
+      phone: lead.phone,
+      source: 'spring_outing_consult'
+    })
+    
+    if (!error) {
+      setMessage('✅ 預約已送出，專員將盡快與您聯繫！')
+      setLead({ name: '', phone: '' })
+    }
+    setSubmitting(false)
+    setTimeout(() => setMessage(null), 5000)
   }
 
   return (
@@ -114,7 +87,8 @@ function SpringOuting() {
       </div>
 
       {/* Categories */}
-      {SPRING_ITEMS.map((cat, ci) => (
+      {loading && <p style={{ textAlign: 'center', color: 'var(--text-muted)' }}>載入中...</p>}
+      {!loading && springItems.map((cat, ci) => (
         <div key={ci} className="section">
           <div className="section-title" style={{ marginBottom: 14 }}>{cat.category}</div>
           {cat.items.map(item => (
@@ -122,16 +96,16 @@ function SpringOuting() {
               key={item.id}
               id={`btn-spring-${item.id}`}
               className="spring-card"
-              onClick={() => handleAffiliate(item.affiliate, item.title)}
+              onClick={() => handleAffiliate(item.link_url, item.title)}
               style={{ cursor: 'pointer' }}
             >
-              <div className="spring-card-emoji">{item.icon}</div>
+              <div className="spring-card-emoji">{item.icon_emoji || '🔗'}</div>
               <div className="spring-card-body">
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
                   <div className="spring-card-title">{item.title}</div>
-                  <span className="badge badge-gold" style={{ fontSize: '0.65rem', flexShrink: 0 }}>{item.tag}</span>
+                  {item.tag && <span className="badge badge-gold" style={{ fontSize: '0.65rem', flexShrink: 0 }}>{item.tag}</span>}
                 </div>
-                <div className="spring-card-desc">{item.desc}</div>
+                <div className="spring-card-desc">{item.description}</div>
                 <div className="spring-card-tag">↗ 點擊查看優惠方案</div>
               </div>
             </div>
@@ -155,24 +129,38 @@ function SpringOuting() {
           趁早規劃，讓家人安心。預約免費塔位健檢，<br />
           了解各地塔位行情與規劃建議。
         </p>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          <input
-            id="input-lead-name"
-            className="form-input"
-            placeholder="您的姓名"
-            style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.2)', color: 'white' }}
-          />
-          <input
-            id="input-lead-phone"
-            className="form-input"
-            placeholder="聯絡電話"
-            type="tel"
-            style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.2)', color: 'white' }}
-          />
-          <button id="btn-lead-submit" className="btn btn-primary">
-            🏛 預約免費諮詢
-          </button>
-        </div>
+        
+        {message ? (
+          <div style={{ color: 'var(--gold-light)', padding: '20px', fontWeight: 600 }}>{message}</div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <input
+              id="input-lead-name"
+              className="form-input"
+              placeholder="您的姓名"
+              value={lead.name}
+              onChange={e => setLead(prev => ({ ...prev, name: e.target.value }))}
+              style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.2)', color: 'white' }}
+            />
+            <input
+              id="input-lead-phone"
+              className="form-input"
+              placeholder="聯絡電話"
+              type="tel"
+              value={lead.phone}
+              onChange={e => setLead(prev => ({ ...prev, phone: e.target.value }))}
+              style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.2)', color: 'white' }}
+            />
+            <button
+              id="btn-lead-submit"
+              className="btn btn-primary"
+              disabled={submitting}
+              onClick={handleLeadSubmit}
+            >
+              {submitting ? '⌛ 處理中...' : '🏛 預約免費諮詢'}
+            </button>
+          </div>
+        )}
         <p style={{ color: 'rgba(255,255,255,0.35)', fontSize: '0.72rem', marginTop: 12 }}>
           您的資料將以加密方式保存，不會外洩給第三方
         </p>

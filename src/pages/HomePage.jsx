@@ -1,36 +1,80 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
+import { useRoom } from '../contexts/RoomContext'
+import LandingPage from '../components/LandingPage'
 
-const FAMILY_UUID = 'f8c2a3d1-4e5f-6789-abcd-ef0123456789'
-
-const MEMBERS_MOCK = [
-  { name: '爸爸', avatar: '👴', status: 'attend' },
-  { name: '媽媽', avatar: '👩', status: 'attend' },
-  { name: '大哥', avatar: '👨', status: 'absent' },
-  { name: '二姊', avatar: '👩', status: 'attend' },
-  { name: '小妹', avatar: '👧', status: 'pending' },
-  { name: '叔叔', avatar: '🧔', status: 'attend' },
-]
-
-function HomePage({ user }) {
+function HomePage({ user, onLogin }) {
+  const { roomId } = useRoom()
   const navigate = useNavigate()
-  const [attendance, setAttendance] = useState(null) // null | 'attend' | 'absent'
+  const [attendance, setAttendance] = useState(null)
+  const [members, setMembers] = useState([])
+  const [esgTotal, setEsgTotal] = useState(0)
+  const esgGoal = 10000
   const [copied, setCopied] = useState(false)
-  const [esgAmount] = useState(3280)
-  const [esgGoal] = useState(10000)
 
   const displayName = user?.user_metadata?.full_name || user?.email?.split('@')[0] || '家族成員'
-  const familyUrl = `${window.location.origin}/Qingming/family/${FAMILY_UUID}`
+  const familyUrl = `${window.location.origin}/Qingming/family/${roomId}`
 
-  const attendCount = MEMBERS_MOCK.filter(m => m.status === 'attend').length
-  const absentCount = MEMBERS_MOCK.filter(m => m.status === 'absent').length
-  const pendingCount = MEMBERS_MOCK.filter(m => m.status === 'pending').length
+  useEffect(() => {
+    if (user && roomId) {
+      fetchData()
+    }
+  }, [user, roomId])
+
+  const fetchData = async () => {
+    // 1. Fetch own attendance
+    const { data: ownMember } = await supabase
+      .from('QingMing_members')
+      .select('attendance_status')
+      .eq('family_room_id', roomId)
+      .eq('user_id', user.id)
+      .single()
+    
+    if (ownMember) setAttendance(ownMember.attendance_status)
+
+    // 2. Fetch all members
+    const { data: allMembers } = await supabase
+      .from('QingMing_members')
+      .select('user_id, display_name, avatar_url, attendance_status')
+      .eq('family_room_id', roomId)
+    
+    if (allMembers) {
+      setMembers(allMembers)
+    } else {
+      setMembers([{ 
+        user_id: user.id, 
+        display_name: displayName, 
+        avatar_url: user?.user_metadata?.avatar_url || '👤', 
+        attendance_status: 'pending' 
+      }])
+    }
+
+    // 3. Fetch ESG Total
+    const { data: esgData } = await supabase
+      .from('QingMing_esg_fund')
+      .select('amount')
+    
+    if (esgData) {
+      const sum = esgData.reduce((acc, row) => acc + (row.amount || 0), 0)
+      setEsgTotal(sum)
+    }
+  }
 
   const handleAttendance = async (choice) => {
     setAttendance(choice)
-    // In production: upsert to Supabase members table
-    // await supabase.from('members').upsert({ family_id: FAMILY_UUID, user_id: user.id, status: choice })
+    const { error } = await supabase
+      .from('QingMing_members')
+      .upsert({
+        family_room_id: roomId,
+        user_id: user.id,
+        display_name: displayName,
+        avatar_url: user?.user_metadata?.avatar_url || '👤',
+        attendance_status: choice,
+        updated_at: new Date().toISOString()
+      }, { onConflict: 'family_room_id,user_id' })
+    
+    if (!error) fetchData()
   }
 
   const handleCopy = () => {
@@ -40,188 +84,201 @@ function HomePage({ user }) {
   }
 
   const handleShareLine = () => {
-    const text = encodeURIComponent(`📿 清明家族聚集邀請\n\n今年清明，讓我們用更溫馨的方式相聚！\n請點擊連結填寫出席意願：\n${familyUrl}`)
+    const text = encodeURIComponent(`📿 清明家族聚集邀請\n\n今年清明，讓我們用更溫馨的方式相聚！\n${familyUrl}`)
     window.open(`https://line.me/R/msg/text/?${text}`, '_blank')
   }
 
+  // GUEST VIEW
+  if (!user) {
+    return <LandingPage onLogin={onLogin} />
+  }
+
+  // AUTH VIEW (Dashboard)
+  const attendCount = members.filter(m => m.attendance_status === 'attend').length
+  const absentCount = members.filter(m => m.attendance_status === 'absent').length
+  const pendingCount = members.filter(m => m.attendance_status === 'pending').length
+
   return (
-    <div className="page">
-      {/* Hero */}
-      <div className="hero-banner">
-        <div className="hero-date">🗓 2026 清明 · 4月4日</div>
-        <h1>歡迎回來，{displayName}！</h1>
-        <p className="hero-sub">今年清明，讓愛跨越時空 🌸</p>
-        <div style={{ marginTop: 16, display: 'flex', gap: 8 }}>
-          <button className="btn btn-primary btn-sm" id="btn-go-shop" onClick={() => navigate('/shop')}>
-            🛒 祭品預購
-          </button>
-          <button className="btn btn-outline btn-sm" id="btn-go-altar" onClick={() => navigate('/altar')}
-            style={{ background: 'rgba(255,255,255,0.15)', borderColor: 'rgba(255,255,255,0.4)', color: 'white' }}>
-            🕯️ 線上祭拜
-          </button>
+    <div className="page" style={{ padding: '24px 20px 80px' }}>
+      {/* Dashboard Hero */}
+      <div className="hero-bg" style={{ 
+        margin: '-24px -20px 24px', padding: '48px 24px 32px', 
+        borderRadius: '0 0 40px 40px', textAlign: 'left',
+        boxShadow: '0 10px 30px rgba(132, 99, 88, 0.1)'
+      }}>
+        <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '6px 12px', background: 'white', borderRadius: '99px', fontSize: '0.75rem', fontWeight: 700, color: 'var(--color-brand-dark)', marginBottom: '16px' }}>
+          🗓 2026 清明 · 4月4日
         </div>
-      </div>
-
-      {/* Attendance Poll */}
-      {!attendance ? (
-        <div className="poll-card section">
-          <p className="poll-title">❓ 今年清明，您是否親自出席掃墓？</p>
-          <div className="poll-options">
-            <button
-              id="btn-attend-yes"
-              className={`poll-option ${attendance === 'attend' ? 'selected-attend' : ''}`}
-              onClick={() => handleAttendance('attend')}
-            >
-              <span className="poll-option-icon">✅</span>
-              <span>親自出席</span>
-              <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>供品懶人包</span>
-            </button>
-            <button
-              id="btn-attend-no"
-              className={`poll-option ${attendance === 'absent' ? 'selected-absent' : ''}`}
-              onClick={() => handleAttendance('absent')}
-            >
-              <span className="poll-option-icon">🙏</span>
-              <span>無法出席</span>
-              <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>代客掃墓</span>
-            </button>
-          </div>
-        </div>
-      ) : (
-        <div className="section">
-          <div className="card" style={{
-            background: attendance === 'attend' ? 'linear-gradient(135deg, #E8F5EE, white)' : 'linear-gradient(135deg, #FFF0F0, white)',
-            borderColor: attendance === 'attend' ? 'var(--jade)' : 'var(--crimson-light)'
-          }}>
-            <div className="card-body text-center">
-              <div style={{ fontSize: '2.5rem', marginBottom: 8 }}>
-                {attendance === 'attend' ? '✅' : '🙏'}
-              </div>
-              <p style={{ fontWeight: 700, color: attendance === 'attend' ? 'var(--jade)' : 'var(--crimson)' }}>
-                {attendance === 'attend' ? '已確認親自出席！' : '已記錄，為您安排代客服務'}
-              </p>
-              <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginTop: 8 }}>
-                {attendance === 'attend' ? '前往預購供品懶人包 🎁' : '查看代客掃墓服務方案 🚗'}
-              </p>
-              <button
-                className="btn btn-primary btn-sm"
-                style={{ marginTop: 14 }}
-                onClick={() => navigate('/shop')}
-              >
-                {attendance === 'attend' ? '預購供品' : '代客服務'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Stats */}
-      <div className="section">
-        <div className="section-header">
-          <span className="section-title">👨‍👩‍👧‍👦 家族出席總覽</span>
-          <span className="badge badge-gold">{MEMBERS_MOCK.length} 人</span>
-        </div>
-        <div className="stats-row">
-          <div className="stat-card">
-            <div className="stat-number">{attendCount}</div>
-            <div className="stat-label">✅ 出席</div>
-          </div>
-          <div className="stat-card">
-            <div className="stat-number">{absentCount}</div>
-            <div className="stat-label">🙏 代拜</div>
-          </div>
-          <div className="stat-card">
-            <div className="stat-number">{pendingCount}</div>
-            <div className="stat-label">⏳ 待回覆</div>
-          </div>
-        </div>
-
-        {/* Members avatars */}
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
-          {MEMBERS_MOCK.map((m, i) => (
-            <div key={i} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
-              <div style={{
-                width: 48,
-                height: 48,
-                borderRadius: '50%',
-                background: m.status === 'attend' ? 'var(--jade-pale)' : m.status === 'absent' ? 'var(--crimson-pale)' : 'var(--gold-pale)',
-                border: `2px solid ${m.status === 'attend' ? 'var(--jade)' : m.status === 'absent' ? 'var(--crimson-light)' : 'var(--gold-light)'}`,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: '1.5rem'
-              }}>{m.avatar}</div>
-              <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)' }}>{m.name}</span>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* ESG Progress */}
-      <div className="esg-card section">
-        <div className="esg-header">
-          <span className="esg-icon">🌱</span>
-          <div>
-            <div className="esg-title">公益種樹基金</div>
-            <div className="esg-amount">本月累積捐款 NT$ {esgAmount.toLocaleString()}</div>
-          </div>
-        </div>
-        <div className="progress-bar-wrap">
-          <div className="progress-bar" style={{ width: `${(esgAmount / esgGoal) * 100}%` }} />
-        </div>
-        <div className="progress-text">{((esgAmount / esgGoal) * 100).toFixed(0)}% / 目標 NT$ {esgGoal.toLocaleString()}</div>
-        <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: 10, lineHeight: 1.6 }}>
-          每筆交易 10% 自動捐入公益基金，感謝您的參與 🙏
+        <h1 className="text-serif" style={{ fontSize: '1.8rem', color: 'var(--color-warm-900)', margin: 0 }}>
+          歡迎回來，<br /><span className="text-brand-dark">{displayName}</span>
+        </h1>
+        <p style={{ marginTop: '8px', color: 'var(--color-warm-600)', fontSize: '0.95rem' }}>
+          今年清明，讓思念溫馨重聚 🌿
         </p>
       </div>
 
-      {/* Family Room Share */}
+      {/* Attendance CTA */}
       <div className="section">
-        <div className="section-title" style={{ marginBottom: 14 }}>📤 邀請家族成員</div>
-        <div className="room-share-card">
-          <p style={{ fontSize: '0.88rem', color: 'var(--text-secondary)', marginBottom: 4 }}>您的家族專屬連結</p>
-          <div className="room-url">{familyUrl}</div>
-          <div style={{ display: 'flex', gap: 10 }}>
-            <button id="btn-copy-link" className="btn btn-outline btn-sm" style={{ flex: 1 }} onClick={handleCopy}>
-              {copied ? '✅ 已複製' : '📋 複製連結'}
+        {!attendance || attendance === 'pending' ? (
+          <div className="card" style={{ padding: '24px', border: '2px solid var(--color-brand-light)', background: 'linear-gradient(135deg, white, var(--color-warm-50))' }}>
+            <h2 className="text-serif" style={{ fontSize: '1.1rem', textAlign: 'center', marginBottom: '20px' }}>
+              ❓ 今年清明，您是否親自出席掃墓？
+            </h2>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+              <button 
+                onClick={() => handleAttendance('attend')}
+                style={{ 
+                  padding: '24px 12px', borderRadius: '20px', border: '1.5px solid var(--color-warm-200)', background: 'white',
+                  display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', cursor: 'pointer'
+                }}
+              >
+                <span style={{ fontSize: '2rem' }}>✅</span>
+                <span style={{ fontWeight: 700, fontSize: '0.9rem' }}>親自出席</span>
+              </button>
+              <button 
+                onClick={() => handleAttendance('absent')}
+                style={{ 
+                  padding: '24px 12px', borderRadius: '20px', border: '1.5px solid var(--color-warm-200)', background: 'white',
+                  display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px', cursor: 'pointer'
+                }}
+              >
+                <span style={{ fontSize: '2rem' }}>🙏</span>
+                <span style={{ fontWeight: 700, fontSize: '0.9rem' }}>無法出席</span>
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className="card" style={{ 
+            padding: '20px', textAlign: 'center', 
+            background: attendance === 'attend' ? 'rgba(67, 48, 43, 0.03)' : 'rgba(217, 119, 6, 0.03)',
+            border: `1.5px solid ${attendance === 'attend' ? 'var(--color-warm-800)' : 'var(--color-brand)'}`
+          }}>
+            <div style={{ fontSize: '2.5rem', marginBottom: '8px' }}>{attendance === 'attend' ? '🌿' : '✨'}</div>
+            <p style={{ fontWeight: 700, color: 'var(--color-warm-900)' }}>
+              {attendance === 'attend' ? '已排定親自出席交流' : '已為您安排尊榮代客服務'}
+            </p>
+            <button 
+              onClick={() => setAttendance('pending')}
+              style={{ marginTop: '12px', fontSize: '0.75rem', color: 'var(--color-warm-500)', textDecoration: 'underline', border: 'none', background: 'none', cursor: 'pointer' }}
+            >
+              更改出席意願
             </button>
-            <button id="btn-share-line" className="btn btn-jade btn-sm" style={{ flex: 1 }} onClick={handleShareLine}>
-              分享至 LINE
+          </div>
+        )}
+      </div>
+
+      {/* Quick Stats Grid */}
+      <div className="section">
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+          <h3 className="text-serif" style={{ fontSize: '1.1rem' }}>👨‍👩‍👧‍👦 家族出席概況</h3>
+          <span className="badge badge-gold" style={{ background: 'var(--color-warm-800)', color: 'white', border: 'none' }}>
+            {members.length} 人參與
+          </span>
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px', marginBottom: '20px' }}>
+          {[
+            { num: attendCount, label: '出席', color: 'var(--color-warm-700)' },
+            { num: absentCount, label: '代拜', color: 'var(--color-brand)' },
+            { num: pendingCount, label: '待定', color: 'var(--color-warm-400)' }
+          ].map((s, i) => (
+            <div key={i} className="card" style={{ padding: '12px 6px', textAlign: 'center' }}>
+              <div style={{ fontSize: '1.4rem', fontWeight: 700, color: s.color }}>{s.num}</div>
+              <div style={{ fontSize: '0.65rem', color: 'var(--color-warm-500)', fontWeight: 600 }}>{s.label}</div>
+            </div>
+          ))}
+        </div>
+
+        {/* Member Avatars */}
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px' }}>
+          {members.map((m, i) => {
+            const isMe = m.user_id === user?.id
+            return (
+              <div key={i} style={{ textAlign: 'center', maxWidth: '60px' }}>
+                <div style={{
+                  width: '48px', height: '48px', borderRadius: '50%', background: 'white',
+                  border: `2px solid ${m.attendance_status === 'attend' ? 'var(--color-warm-800)' : 'var(--color-brand)'}`,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden',
+                  margin: '0 auto 4px', boxShadow: '0 4px 10px rgba(0,0,0,0.05)'
+                }}>
+                  {m.avatar_url && m.avatar_url.startsWith('http') 
+                    ? <img src={m.avatar_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> 
+                    : (m.avatar_url || '👤')}
+                </div>
+                <div style={{ fontSize: '0.65rem', color: 'var(--color-warm-700)', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {m.display_name} {isMe && '(您)'}
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      </div>
+
+      {/* ESG Fund Card */}
+      <div className="section card" style={{ padding: '24px', background: 'var(--color-warm-900)', color: 'white', border: 'none' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '20px' }}>
+          <div>
+            <div style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.6)', marginBottom: '4px' }}>公益累計福澤</div>
+            <div style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--color-brand-light)' }}>NT$ {esgTotal.toLocaleString()}</div>
+          </div>
+          <span style={{ fontSize: '2rem' }}>🌳</span>
+        </div>
+        <div style={{ height: '8px', background: 'rgba(255,255,255,0.1)', borderRadius: '4px', overflow: 'hidden', marginBottom: '12px' }}>
+          <div style={{ width: `${Math.min((esgTotal / esgGoal) * 100, 100)}%`, height: '100%', background: 'var(--color-brand-light)', borderRadius: '4px' }}></div>
+        </div>
+        <div style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.5)', display: 'flex', justifyContent: 'space-between' }}>
+          <span>進度 {((esgTotal / esgGoal) * 100).toFixed(0)}%</span>
+          <span>目標 NT$ {esgGoal.toLocaleString()}</span>
+        </div>
+      </div>
+
+      {/* Share / Invite Section */}
+      <div className="section">
+        <h3 className="text-serif" style={{ fontSize: '1.1rem', marginBottom: '14px' }}>📤 邀請家族成員</h3>
+        <div className="card" style={{ padding: '20px', background: 'var(--color-warm-50)', border: '1.5px dashed var(--color-warm-300)' }}>
+          <div style={{ fontSize: '0.75rem', color: 'var(--color-warm-600)', marginBottom: '10px', wordBreak: 'break-all', fontFamily: 'monospace' }}>
+            {familyUrl}
+          </div>
+          <div style={{ display: 'flex', gap: '10px' }}>
+            <button 
+              onClick={handleCopy}
+              className="btn btn-outline btn-sm" 
+              style={{ flex: 1, background: 'white' }}
+            >
+              {copied ? '✅ 已複製' : '📋 複製網址'}
+            </button>
+            <button 
+              onClick={handleShareLine}
+              className="btn btn-sm" 
+              style={{ flex: 1, background: '#06C755', color: 'white' }}
+            >
+              LINE 分享
             </button>
           </div>
         </div>
       </div>
 
-      {/* Quick Actions */}
+      {/* Quick Actions (Dashboard Grid) */}
       <div className="section">
-        <div className="section-title" style={{ marginBottom: 14 }}>⚡ 快捷功能</div>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+        <h3 className="text-serif" style={{ fontSize: '1.1rem', marginBottom: '16px' }}>⚡ 快捷服務</h3>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px' }}>
           {[
-            { icon: '🕯️', label: '虛擬追思牆', path: '/memorial', color: '#FFF3D0', border: 'var(--gold-light)' },
-            { icon: '🌸', label: '線上祭壇', path: '/altar', color: '#FFF0F0', border: '#FFB3B3' },
-            { icon: '📦', label: '訂單追蹤', path: '/order', color: 'var(--jade-pale)', border: '#9FD4B5' },
-            { icon: '🌿', label: '春遊推薦', path: '/spring', color: 'var(--gold-pale)', border: 'var(--gold-light)' },
+            { label: '虛擬追思牆', path: '/memorial', icon: '🕯️', bg: 'var(--color-warm-50)' },
+            { label: '線上祭拜', path: '/altar', icon: '🌸', bg: 'var(--color-warm-100)' },
+            { label: '訂單追蹤', path: '/order', icon: '📦', bg: 'rgba(245, 158, 11, 0.05)' },
+            { label: '春遊行程', path: '/spring', icon: '🌿', bg: 'rgba(132, 99, 88, 0.05)' }
           ].map((item, i) => (
-            <button
+            <button 
               key={i}
-              id={`btn-quick-${i}`}
               onClick={() => navigate(item.path)}
               style={{
-                background: item.color,
-                border: `1.5px solid ${item.border}`,
-                borderRadius: 'var(--radius-md)',
-                padding: '18px 14px',
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                gap: 8,
-                cursor: 'pointer',
-                transition: 'var(--transition)',
-                fontFamily: 'var(--font-sans)',
+                height: '100px', borderRadius: '24px', border: '1.5px solid var(--color-warm-200)',
+                background: item.bg, display: 'flex', flexDirection: 'column', alignItems: 'center',
+                justifyContent: 'center', gap: '8px', cursor: 'pointer', transition: '0.2s',
+                ':active': { transform: 'scale(0.95)' }
               }}
             >
               <span style={{ fontSize: '1.8rem' }}>{item.icon}</span>
-              <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-secondary)' }}>{item.label}</span>
+              <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--color-warm-800)' }}>{item.label}</span>
             </button>
           ))}
         </div>

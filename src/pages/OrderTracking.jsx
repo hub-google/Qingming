@@ -1,32 +1,51 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { supabase } from '../lib/supabase'
+import { useRoom } from '../contexts/RoomContext'
 
-const ORDERS = [
-  {
-    id: 'QM-20260404-001',
-    service: '代客掃墓・直播方案',
-    worker: '李師傅 ⭐ 4.9',
-    location: '台北市內湖區碧湖公園',
-    status: 1, // 0: 未接單, 1: 執行中, 2: 已完成
-    date: '2026-04-04',
-    photos: ['📸 施工前照片', '📸 施工後照片'],
-    gps: '25.0802° N, 121.5680° E',
-  },
-  {
-    id: 'QM-20260403-002',
-    service: '代燒金紙・標準包',
-    worker: '陳師傅 ⭐ 4.8',
-    location: '新北市汐止區',
-    status: 2,
-    date: '2026-04-03',
-    photos: ['📸 施工前照片', '📸 施工後照片'],
-    gps: '25.0663° N, 121.6548° E',
-  },
-]
+const STEPS = ['已下單', '受理中', '執行中', '已完成']
 
-const STEPS = ['已下單', '執行中', '已完成']
+function OrderTracking({ user }) {
+  const { roomId } = useRoom()
+  const [orders, setOrders] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [selected, setSelected] = useState(null)
 
-function OrderTracking() {
-  const [selected, setSelected] = useState(ORDERS[0])
+  useEffect(() => {
+    if (user && roomId) fetchOrders()
+  }, [user, roomId])
+
+  const fetchOrders = async () => {
+    setLoading(true)
+    const { data, error } = await supabase
+      .from('QingMing_orders')
+      .select(`
+        *,
+        QingMing_order_items (
+          *,
+          QingMing_products (*)
+        )
+      `)
+      .eq('user_id', user.id)
+      .eq('family_room_id', roomId)
+      .order('created_at', { ascending: false })
+    
+    if (data) {
+      setOrders(data)
+      if (data.length > 0 && !selected) {
+        setSelected(data[0])
+      }
+    }
+    setLoading(false)
+  }
+
+  const getStatusIndex = (status) => {
+    const s = status?.toLowerCase()
+    if (s === 'pending') return 0
+    if (s === 'processing') return 1
+    if (s === 'shipping' || s === 'paid') return 2
+    if (s === 'completed') return 3
+    return 0
+  }
 
   return (
     <div className="page">
@@ -38,31 +57,36 @@ function OrderTracking() {
       {/* Order list */}
       <div className="section">
         <div className="section-title" style={{ marginBottom: 14 }}>我的訂單</div>
-        {ORDERS.map(order => (
-          <div
-            key={order.id}
-            className="card"
-            style={{
-              marginBottom: 12,
-              borderColor: selected.id === order.id ? 'var(--gold)' : 'var(--border)',
-              borderWidth: selected.id === order.id ? 2 : 1,
-              cursor: 'pointer',
-            }}
-            onClick={() => setSelected(order)}
-          >
-            <div className="card-body">
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                <div>
-                  <div style={{ fontWeight: 700, fontSize: '0.95rem', marginBottom: 4 }}>{order.service}</div>
-                  <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>{order.id}</div>
+        {loading && <p style={{ textAlign: 'center', color: 'var(--text-muted)' }}>載入中...</p>}
+        {!loading && orders.length === 0 && <p style={{ textAlign: 'center', color: 'var(--text-muted)' }}>尚未有任何訂單 🙏</p>}
+        {orders.map(order => {
+          const itemsText = order.QingMing_order_items?.map(i => i.QingMing_products?.name).join(', ') || '祭祀品'
+          return (
+            <div
+              key={order.id}
+              className="card"
+              style={{
+                marginBottom: 12,
+                borderColor: selected?.id === order.id ? 'var(--gold)' : 'var(--border)',
+                borderWidth: selected?.id === order.id ? 2 : 1,
+                cursor: 'pointer',
+              }}
+              onClick={() => setSelected(order)}
+            >
+              <div className="card-body">
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                  <div style={{ flex: 1, marginRight: 12 }}>
+                    <div style={{ fontWeight: 700, fontSize: '0.9rem', marginBottom: 4 }}>{itemsText}</div>
+                    <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>#{order.id.slice(0, 8)}... · NT$ {order.total_amount}</div>
+                  </div>
+                  <span className={`badge ${order.status === 'completed' ? 'badge-jade' : 'badge-gold'}`}>
+                    {STEPS[getStatusIndex(order.status)]}
+                  </span>
                 </div>
-                <span className={`badge ${order.status === 2 ? 'badge-jade' : order.status === 1 ? 'badge-gold' : 'badge-crimson'}`}>
-                  {STEPS[order.status]}
-                </span>
               </div>
             </div>
-          </div>
-        ))}
+          )
+        })}
       </div>
 
       {/* Order detail */}
@@ -70,96 +94,75 @@ function OrderTracking() {
         <div className="section card" style={{ animation: 'fadeIn 0.3s ease' }}>
           <div className="card-body">
             <h2 style={{ fontSize: '1rem', marginBottom: 16, color: 'var(--crimson)' }}>
-              📋 {selected.service}
+              📋 訂單詳情
             </h2>
 
             {/* Step tracker */}
             <div className="order-steps">
-              {STEPS.map((step, i) => (
-                <div key={i} className={`order-step${i < selected.status ? ' done' : i === selected.status ? ' active' : ''}`}>
-                  <div className="step-circle">
-                    {i < selected.status ? '✓' : i === selected.status ? '●' : i + 1}
+              {STEPS.map((step, i) => {
+                const currentIdx = getStatusIndex(selected.status)
+                return (
+                  <div key={i} className={`order-step${i < currentIdx ? ' done' : i === currentIdx ? ' active' : ''}`}>
+                    <div className="step-circle">
+                      {i < currentIdx ? '✓' : i === currentIdx ? '●' : i + 1}
+                    </div>
+                    <div className="step-label">{step}</div>
                   </div>
-                  <div className="step-label">{step}</div>
-                </div>
-              ))}
+                )
+              })}
             </div>
 
             <div className="divider" />
 
             {/* Info */}
             {[
-              { label: '📅 服務日期', value: selected.date },
-              { label: '👷 服務人員', value: selected.worker },
-              { label: '📍 服務地點', value: selected.location },
-              { label: '🛰 GPS 定位', value: selected.gps },
+              { label: '📅 下單日期', value: new Date(selected.created_at).toLocaleDateString() },
+              { label: '💳 付款狀態', value: selected.payment_status === 'paid' ? '✅ 已完成' : '⏳ 待完成' },
+              { label: '📦 取貨資訊', value: selected.pickup_info ? `${selected.pickup_info.date} · ${selected.pickup_info.location}` : '代客服務' },
+              { label: '👷 服務師傅', value: '系統指派中' },
             ].map((item, i) => (
               <div key={i} style={{
                 display: 'flex',
                 justifyContent: 'space-between',
                 padding: '10px 0',
                 borderBottom: i < 3 ? '1px solid var(--border)' : 'none',
-                fontSize: '0.88rem',
+                fontSize: '0.85rem',
               }}>
                 <span style={{ color: 'var(--text-muted)' }}>{item.label}</span>
-                <span style={{ fontWeight: 600, color: 'var(--text-primary)', textAlign: 'right', maxWidth: '55%' }}>{item.value}</span>
+                <span style={{ fontWeight: 600, color: 'var(--text-primary)', textAlign: 'right' }}>{item.value}</span>
               </div>
             ))}
 
-            {/* Photos */}
-            {selected.status >= 1 && (
+            {/* Photos (Mock for completed) */}
+            {selected.status === 'completed' && (
               <>
                 <div className="divider" />
                 <div style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 12 }}>
                   📸 現場照片
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-                  {selected.photos.map((p, i) => (
-                    <div key={i} style={{
-                      background: 'var(--gold-pale)',
-                      border: '1px solid var(--gold-light)',
-                      borderRadius: 'var(--radius-sm)',
-                      padding: '20px 10px',
-                      textAlign: 'center',
-                      fontSize: '0.8rem',
-                      color: 'var(--text-muted)',
-                    }}>
-                      <div style={{ fontSize: '1.5rem', marginBottom: 6 }}>📷</div>
-                      {p}
-                    </div>
-                  ))}
+                  <div style={{ background: 'var(--gold-pale)', border: '1px solid var(--gold-light)', borderRadius: 'var(--radius-sm)', padding: '20px 10px', textAlign: 'center', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                    <div style={{ fontSize: '1.2rem', marginBottom: 4 }}>📷</div>施工前
+                  </div>
+                  <div style={{ background: 'var(--gold-pale)', border: '1px solid var(--gold-light)', borderRadius: 'var(--radius-sm)', padding: '20px 10px', textAlign: 'center', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                    <div style={{ fontSize: '1.2rem', marginBottom: 4 }}>📷</div>供奉後
+                  </div>
                 </div>
-              </>
-            )}
-
-            {/* Live video */}
-            {selected.status === 1 && selected.service.includes('直播') && (
-              <>
-                <div className="divider" />
-                <button id="btn-join-live" className="btn btn-crimson btn-full">
-                  📡 加入即時直播
-                </button>
-              </>
-            )}
-
-            {/* Completed review */}
-            {selected.status === 2 && (
-              <>
-                <div className="divider" />
-                <div style={{
-                  background: 'var(--jade-pale)',
-                  border: '1px solid var(--jade)',
-                  borderRadius: 'var(--radius-sm)',
-                  padding: 14,
-                  textAlign: 'center',
-                }}>
-                  <div style={{ fontSize: '1.5rem', marginBottom: 6 }}>✅</div>
-                  <div style={{ fontWeight: 700, color: 'var(--jade)', fontSize: '0.95rem' }}>服務已完成</div>
-                  <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: 6 }}>感謝您的信任，願先人安息 🙏</div>
-                </div>
-                <button id="btn-download-receipt" className="btn btn-outline btn-full" style={{ marginTop: 12 }}>
+                <button className="btn btn-outline btn-full" style={{ marginTop: 16 }}>
                   📄 下載公益收據 PDF
                 </button>
+              </>
+            )}
+
+            {/* Live CTA for processing */}
+            {selected.status !== 'completed' && (
+              <>
+                <div className="divider" />
+                <div style={{ background: 'var(--jade-pale)', border: '1px solid var(--jade)', borderRadius: 'var(--radius-sm)', padding: 14, textAlign: 'center' }}>
+                  <div style={{ fontSize: '1.5rem', marginBottom: 6 }}>📡</div>
+                  <div style={{ fontWeight: 700, color: 'var(--jade)', fontSize: '0.9rem' }}>即時進度同步中</div>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: 6 }}>我們將在掃墓當天提供即時相片回報。</div>
+                </div>
               </>
             )}
           </div>

@@ -1,25 +1,45 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { supabase } from '../lib/supabase'
+import { useRoom } from '../contexts/RoomContext'
 
 const VIRTUAL_ITEMS = [
   { id: 1, icon: '🏮', name: '祈福燈', price: 50, desc: '點燈祈福，照亮天路' },
   { id: 2, icon: '🌸', name: '鮮花一束', price: 88, desc: '敬獻芬芳，表達思念' },
   { id: 3, icon: '🍜', name: '愛吃的麵', price: 128, desc: '供奉先人最愛的美食' },
   { id: 4, icon: '🍵', name: '好茶一壺', price: 168, desc: '清香好茶，敬奉天上' },
-  { id: 5, icon: '🥃', name: '高粱酒', price: 288, desc: '一杯敬故人，一杯敬自己' },
+  { id: 5, icon: '🍵', name: '大禹嶺長春茶', price: 288, desc: '高山香氣，敬獻尊貴先人' },
   { id: 6, icon: '💰', name: '黃金元寶', price: 388, desc: '金光閃爍，護佑全家' },
   { id: 7, icon: '🎎', name: '傳統紙紮', price: 688, desc: '精緻紙紮，表達孝心' },
   { id: 8, icon: '🏠', name: '豪宅紙紮', price: 1688, desc: '極致榮耀，盡顯孝道' },
 ]
 
 function VirtualAltar({ user }) {
+  const { roomId } = useRoom()
   const [burning, setBurning] = useState(null)
   const [totalDonated, setTotalDonated] = useState(0)
   const [offerings, setOfferings] = useState([])
 
-  const handleOffer = (item) => {
+  const handleOffer = async (item) => {
     setBurning(item)
     setOfferings(prev => [item, ...prev])
     setTotalDonated(prev => prev + item.price)
+
+    // Log to Supabase
+    await supabase.from('QingMing_virtual_offerings').insert({
+      user_id: user?.id,
+      family_room_id: roomId,
+      item_name: item.name,
+      item_icon: item.icon,
+      amount: item.price,
+      payment_status: 'virtual_free'
+    })
+
+    // Also log to ESG fund
+    await supabase.from('QingMing_esg_fund').insert({
+      source_type: 'virtual_offering',
+      amount: Math.round(item.price * 0.1)
+    })
+
     // Auto-close after 3s
     setTimeout(() => setBurning(null), 3000)
   }
