@@ -8,6 +8,8 @@ import RitualShop from './pages/RitualShop'
 import VirtualAltar from './pages/VirtualAltar'
 import OrderTracking from './pages/OrderTracking'
 import SpringOuting from './pages/SpringOuting'
+import ProfileSettings from './pages/ProfileSettings'
+import ResetPassword from './pages/ResetPassword'
 import { supabase } from './lib/supabase'
 
 import { RoomProvider } from './contexts/RoomContext'
@@ -16,6 +18,7 @@ function App() {
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(true)
   const [loginRequired, setLoginRequired] = useState(false)
+  const [recoverySession, setRecoverySession] = useState(false)
 
   useEffect(() => {
     // Check existing session
@@ -25,12 +28,22 @@ function App() {
     })
 
     // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       setUser(session?.user ?? null)
+      
+      // Handle password recovery link
+      if (event === 'PASSWORD_RECOVERY') {
+        setRecoverySession(true)
+      } else if (event === 'SIGNED_IN' || event === 'INITIAL_SESSION') {
+        // If we are signed in, check if it was from a recovery
+        if (recoverySession) {
+          // This will be handled by the router directing to /reset-password
+        }
+      }
     })
 
     return () => subscription.unsubscribe()
-  }, [])
+  }, [recoverySession])
 
   if (loading) {
     return (
@@ -41,10 +54,10 @@ function App() {
         justifyContent: 'center',
         flexDirection: 'column',
         gap: 16,
-        background: '#FFFBF0'
+        background: '#fdf8f6'
       }}>
-        <div style={{ fontSize: '3rem', animation: 'float 2s ease-in-out infinite' }}>🌸</div>
-        <p style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-serif)' }}>清明・家聚</p>
+        <div style={{ fontSize: '3rem', animation: 'float 2s ease-in-out infinite' }}>🌿</div>
+        <p style={{ color: 'var(--color-warm-600)', fontFamily: 'var(--font-serif)' }}>清明・家聚</p>
       </div>
     )
   }
@@ -54,9 +67,12 @@ function App() {
       <RoomProvider>
         <div className={user ? "mobile-container app-container" : "landing-container"}>
           <Routes>
+            {/* Password Recovery (Special Case) */}
+            <Route path="/reset-password" element={<ResetPassword />} />
+
             {/* Public Landing / Dashboard */}
             <Route path="/family/:roomId" element={<HomePage user={user} onLogin={() => setLoginRequired(true)} />} />
-            <Route path="/" element={<HomePage user={user} onLogin={() => setLoginRequired(true)} />} />
+            <Route path="/" element={recoverySession ? <Navigate to="/reset-password" replace /> : <HomePage user={user} onLogin={() => setLoginRequired(true)} />} />
             
             {/* Protected Routes */}
             <Route path="/memorial" element={user ? <MemorialWall user={user} /> : <Navigate to="/" replace />} />
@@ -64,14 +80,16 @@ function App() {
             <Route path="/altar" element={user ? <VirtualAltar user={user} /> : <Navigate to="/" replace />} />
             <Route path="/order" element={user ? <OrderTracking user={user} /> : <Navigate to="/" replace />} />
             <Route path="/spring" element={user ? <SpringOuting user={user} /> : <Navigate to="/" replace />} />
+            <Route path="/profile" element={user ? <ProfileSettings user={user} /> : <Navigate to="/" replace />} />
+            
             <Route path="/login" element={<LoginPage onLogin={setUser} />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
           
-          {user && <BottomNav />}
+          {user && !recoverySession && <BottomNav />}
           
           {/* Overlay Login if triggered from landing */}
-          {!user && loginRequired && (
+          {!user && loginRequired && !recoverySession && (
             <div style={{ position: 'fixed', inset: 0, zIndex: 2000, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <div style={{ width: '100%', maxWidth: '400px', background: 'white', borderRadius: '24px', position: 'relative', overflow: 'hidden' }}>
                 <button 

@@ -104,8 +104,23 @@ function HomePage({ user, onLogin }) {
       <div className="hero-bg" style={{ 
         margin: '-24px -20px 24px', padding: '48px 24px 32px', 
         borderRadius: '0 0 40px 40px', textAlign: 'left',
-        boxShadow: '0 10px 30px rgba(132, 99, 88, 0.1)'
+        boxShadow: '0 10px 30px rgba(132, 99, 88, 0.1)',
+        position: 'relative'
       }}>
+        {/* Settings Entry */}
+        <button 
+          onClick={() => navigate('/profile')}
+          style={{ 
+            position: 'absolute', top: '48px', right: '24px', 
+            width: '40px', height: '40px', borderRadius: '50%', background: 'white',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontSize: '1.2rem', border: 'none', cursor: 'pointer', boxShadow: '0 4px 12px rgba(0,0,0,0.05)'
+          }}
+          title="帳號設定"
+        >
+          ⚙️
+        </button>
+        
         <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '6px 12px', background: 'white', borderRadius: '99px', fontSize: '0.75rem', fontWeight: 700, color: 'var(--color-brand-dark)', marginBottom: '16px' }}>
           🗓 2026 清明 · 4月4日
         </div>
