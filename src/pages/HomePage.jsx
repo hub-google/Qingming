@@ -124,8 +124,8 @@ function HomePage({ user, onLogin }) {
         <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '6px 12px', background: 'white', borderRadius: '99px', fontSize: '0.75rem', fontWeight: 700, color: 'var(--color-brand-dark)', marginBottom: '16px' }}>
           🗓 2026 清明 · 4月4日
         </div>
-        <h1 className="text-serif" style={{ fontSize: '1.8rem', color: 'var(--color-warm-900)', margin: 0 }}>
-          歡迎回來，<br /><span className="text-brand-dark">{displayName}</span>
+        <h1 className="text-serif" style={{ fontSize: '1.8rem', color: 'var(--color-warm-900)', margin: 0, lineHeight: 1.3 }}>
+          歡迎回來，<span className="text-brand-dark" style={{ display: 'inline-block', whiteSpace: 'nowrap' }}>{displayName}</span>
         </h1>
         <p style={{ marginTop: '8px', color: 'var(--color-warm-600)', fontSize: '0.95rem' }}>
           今年清明，讓思念溫馨重聚 🌿
@@ -136,8 +136,8 @@ function HomePage({ user, onLogin }) {
       <div className="section">
         {!attendance || attendance === 'pending' ? (
           <div className="card" style={{ padding: '24px', border: '2px solid var(--color-brand-light)', background: 'linear-gradient(135deg, white, var(--color-warm-50))' }}>
-            <h2 className="text-serif" style={{ fontSize: '1.1rem', textAlign: 'center', marginBottom: '20px' }}>
-              ❓ 今年清明，您是否親自出席掃墓？
+            <h2 className="text-serif" style={{ fontSize: '1.1rem', textAlign: 'center', marginBottom: '20px', lineHeight: 1.5 }}>
+              ❓ 今年清明，您是否親自<span style={{ whiteSpace: 'nowrap' }}>出席掃墓？</span>
             </h2>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
               <button 
@@ -232,8 +232,8 @@ function HomePage({ user, onLogin }) {
       <div className="section card" style={{ padding: '24px', background: 'var(--color-warm-900)', color: 'white', border: 'none' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '20px' }}>
           <div>
-            <div style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.6)', marginBottom: '4px' }}>公益累計福澤</div>
-            <div style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--color-brand-light)' }}>NT$ {esgTotal.toLocaleString()}</div>
+            <div style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.6)', marginBottom: '4px', whiteSpace: 'nowrap' }}>公益累計福澤</div>
+            <div style={{ fontSize: '1.5rem', fontWeight: 700, color: 'var(--color-brand-light)', whiteSpace: 'nowrap' }}>NT$ {esgTotal.toLocaleString()}</div>
           </div>
           <span style={{ fontSize: '2rem' }}>🌳</span>
         </div>

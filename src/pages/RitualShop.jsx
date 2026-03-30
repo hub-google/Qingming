@@ -112,9 +112,9 @@ function RitualShop({ user }) {
 
   return (
     <div className="page">
-      <div className="page-header">
-        <h1>🛒 祭祀商城</h1>
-        <p>智慧分流・出席或代拜，一鍵搞定</p>
+      <div className="page-header" style={{ textAlign: 'center', marginBottom: '32px' }}>
+        <h1 className="text-serif" style={{ fontSize: '1.8rem', color: 'var(--color-warm-900)' }}>🛒 祭祀商城</h1>
+        <p style={{ color: 'var(--color-warm-600)', fontSize: '0.9rem', whiteSpace: 'nowrap' }}>智慧分流・出席或代拜，一鍵搞定</p>
       </div>
 
       <div className="tab-group section">
@@ -130,13 +130,13 @@ function RitualShop({ user }) {
       </div>
 
       <div style={{
-        background: tab === 0 ? 'var(--jade-pale)' : 'var(--crimson-pale)',
-        border: `1.5px solid ${tab === 0 ? 'var(--jade)' : 'var(--crimson-light)'}`,
+        background: tab === 0 ? 'rgba(67, 48, 43, 0.05)' : 'rgba(217, 119, 6, 0.05)',
+        border: `1.5px solid ${tab === 0 ? 'var(--color-warm-800)' : 'var(--color-brand)'}`,
         borderRadius: 'var(--radius-md)',
         padding: '12px 16px',
         marginBottom: 20,
         fontSize: '0.85rem',
-        color: tab === 0 ? 'var(--jade)' : 'var(--crimson)',
+        color: tab === 0 ? 'var(--color-warm-800)' : 'var(--color-brand-dark)',
         fontWeight: 500,
       }}>
         {tab === 0
@@ -200,14 +200,14 @@ function RitualShop({ user }) {
           transform: 'translateX(-50%)',
           width: 'calc(100% - 40px)',
           maxWidth: 440,
-          background: 'linear-gradient(135deg, var(--crimson), #6B1010)',
+          background: 'linear-gradient(135deg, var(--color-warm-800), #2c1a14)',
           borderRadius: 'var(--radius-full)',
-          padding: '14px 20px',
+          padding: '14px 24px',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
           color: 'white',
-          boxShadow: '0 4px 20px rgba(100, 0, 0, 0.4)',
+          boxShadow: '0 8px 30px rgba(0, 0, 0, 0.2)',
           zIndex: 90,
           animation: 'fadeIn 0.3s ease',
         }}>

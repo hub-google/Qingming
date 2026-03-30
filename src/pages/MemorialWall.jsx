@@ -139,9 +139,9 @@ function MemorialWall({ user }) {
         </div>
       )}
 
-      <div className="page-header">
-        <h1>🕯️ 追思牆</h1>
-        <p>在此留下對先人的思念與祝福</p>
+      <div className="page-header" style={{ textAlign: 'center', marginBottom: '32px' }}>
+        <h1 className="text-serif" style={{ fontSize: '1.8rem', color: 'var(--color-warm-900)' }}>🕯️ 追思牆</h1>
+        <p style={{ color: 'var(--color-warm-600)', fontSize: '0.9rem', whiteSpace: 'nowrap' }}>在此留下對先人的思念與祝福</p>
       </div>
 
       {/* Add post button */}
@@ -160,7 +160,7 @@ function MemorialWall({ user }) {
       {(showForm || uploading) && (
         <div className="section card" style={{ animation: 'fadeIn 0.3s ease' }}>
           <div className="card-body">
-            <h2 style={{ fontSize: '1rem', marginBottom: 16, color: 'var(--crimson)' }}>✍️ 填寫追思</h2>
+            <h2 className="text-serif" style={{ fontSize: '1.1rem', marginBottom: 16, color: 'var(--color-warm-800)' }}>✍️ 填寫追思</h2>
             <form onSubmit={handleSubmit}>
               <div className="form-group">
                 <label className="form-label">先人姓名</label>
@@ -195,7 +195,7 @@ function MemorialWall({ user }) {
                   <input ref={fileRef} type="file" accept="image/*" style={{ display: 'none' }} />
                 </div>
               </div>
-              <button id="btn-submit-memorial" type="submit" className="btn btn-crimson btn-full" disabled={uploading}>
+              <button id="btn-submit-memorial" type="submit" className="btn btn-primary btn-full" disabled={uploading}>
                 {uploading ? '⌛ 處理中...' : '🌸 送出追思'}
               </button>
             </form>

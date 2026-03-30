@@ -77,9 +77,9 @@ function VirtualAltar({ user }) {
         </div>
       )}
 
-      <div className="page-header">
-        <h1>🌸 線上祭壇</h1>
-        <p>點燃心意，讓愛跨越時空傳遞</p>
+      <div className="page-header" style={{ textAlign: 'center', marginBottom: '32px' }}>
+        <h1 className="text-serif" style={{ fontSize: '1.8rem', color: 'var(--color-warm-900)' }}>🌸 線上祭壇</h1>
+        <p style={{ color: 'var(--color-warm-600)', fontSize: '0.9rem', whiteSpace: 'nowrap' }}>點燃心意，讓愛跨越時空傳遞</p>
       </div>
 
 

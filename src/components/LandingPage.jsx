@@ -46,14 +46,14 @@ const LandingPage = ({ onLogin }) => {
             fontSize: 'clamp(2rem, 5vw, 3.5rem)', fontWeight: 700, color: 'var(--color-warm-900)',
             lineHeight: 1.2, margin: '0 0 24px'
           }}>
-            讓思念沒有距離<br />今年清明，我們<span className="text-brand-dark">「雲端家聚」</span>。
+            讓思念沒有距離<br />今年清明，我們<span className="text-brand-dark" style={{ display: 'inline-block', whiteSpace: 'nowrap' }}>「雲端家聚」</span>。
           </h1>
           <p style={{
             fontSize: '1.1rem', color: 'var(--color-warm-600)', lineHeight: 1.7,
             maxWidth: '650px', margin: '0 auto 40px'
           }}>
             結合傳統敬意與現代科技，為您打理掃墓大小事。<br className="hidden-mobile" />
-            一鍵建立專屬家族追思空間，無論身在何處，都能為先人獻上最深的心意。
+            一鍵建立專屬家族追思空間，無論身在何處，都能為先人獻上<span style={{ display: 'inline-block', whiteSpace: 'nowrap' }}>最深的心意。</span>
           </p>
           <div style={{ display: 'flex', gap: '16px', justifyContent: 'center', flexWrap: 'wrap' }}>
             <button 

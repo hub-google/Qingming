@@ -59,15 +59,15 @@ function SpringOuting() {
 
   return (
     <div className="page">
-      <div className="page-header">
-        <h1>🌿 春遊導購</h1>
-        <p>清明出遊周邊推薦，一站式安排</p>
+      <div className="page-header" style={{ textAlign: 'center', marginBottom: '32px' }}>
+        <h1 className="text-serif" style={{ fontSize: '1.8rem', color: 'var(--color-warm-900)' }}>🌿 春遊導購</h1>
+        <p style={{ color: 'var(--color-warm-600)', fontSize: '0.9rem', whiteSpace: 'nowrap' }}>清明出遊周邊推薦，一站式安排</p>
       </div>
 
       {/* Intro */}
       <div style={{
-        background: 'linear-gradient(135deg, var(--jade-pale), #F0FFF5)',
-        border: '1.5px solid var(--jade)',
+        background: 'rgba(67, 48, 43, 0.05)',
+        border: '1.5px solid var(--color-warm-300)',
         borderRadius: 'var(--radius-md)',
         padding: '16px',
         marginBottom: 24,
@@ -77,7 +77,7 @@ function SpringOuting() {
       }}>
         <span style={{ fontSize: '1.5rem' }}>🌸</span>
         <div>
-          <div style={{ fontWeight: 700, color: 'var(--jade)', fontSize: '0.95rem', marginBottom: 4 }}>
+          <div style={{ fontWeight: 700, color: 'var(--color-warm-800)', fontSize: '0.95rem', marginBottom: 4 }}>
             清明連假春遊去！
           </div>
           <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', lineHeight: 1.6 }}>

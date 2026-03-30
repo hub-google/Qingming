@@ -49,9 +49,9 @@ function OrderTracking({ user }) {
 
   return (
     <div className="page">
-      <div className="page-header">
-        <h1>📦 訂單追蹤</h1>
-        <p>代客服務即時進度，讓您安心</p>
+      <div className="page-header" style={{ textAlign: 'center', marginBottom: '32px' }}>
+        <h1 className="text-serif" style={{ fontSize: '1.8rem', color: 'var(--color-warm-900)' }}>📦 訂單追蹤</h1>
+        <p style={{ color: 'var(--color-warm-600)', fontSize: '0.9rem', whiteSpace: 'nowrap' }}>代客服務即時進度，讓您安心</p>
       </div>
 
       {/* Order list */}
@@ -67,7 +67,7 @@ function OrderTracking({ user }) {
               className="card"
               style={{
                 marginBottom: 12,
-                borderColor: selected?.id === order.id ? 'var(--gold)' : 'var(--border)',
+                borderColor: selected?.id === order.id ? 'var(--color-brand)' : 'var(--border)',
                 borderWidth: selected?.id === order.id ? 2 : 1,
                 cursor: 'pointer',
               }}
@@ -93,7 +93,7 @@ function OrderTracking({ user }) {
       {selected && (
         <div className="section card" style={{ animation: 'fadeIn 0.3s ease' }}>
           <div className="card-body">
-            <h2 style={{ fontSize: '1rem', marginBottom: 16, color: 'var(--crimson)' }}>
+            <h2 className="text-serif" style={{ fontSize: '1.1rem', marginBottom: 16, color: 'var(--color-warm-800)' }}>
               📋 訂單詳情
             </h2>
 
