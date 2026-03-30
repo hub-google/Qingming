@@ -46,7 +46,7 @@ const LandingPage = ({ onLogin }) => {
             fontSize: 'clamp(2rem, 5vw, 3.5rem)', fontWeight: 700, color: 'var(--color-warm-900)',
             lineHeight: 1.2, margin: '0 0 24px'
           }}>
-            讓思念沒有距離<br />今年清明，我們<span className="text-brand-dark" style={{ display: 'inline-block', whiteSpace: 'nowrap' }}>「雲端家聚」</span>。
+            讓思念沒有距離<br />今年清明，我們<span className="text-brand-dark" style={{ display: 'inline-block', whiteSpace: 'nowrap' }}>「雲端家聚」</span>
           </h1>
           <p style={{
             fontSize: '1.1rem', color: 'var(--color-warm-600)', lineHeight: 1.7,
@@ -82,7 +82,7 @@ const LandingPage = ({ onLogin }) => {
         <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
           <div style={{ textAlign: 'center', marginBottom: '64px' }}>
             <h2 className="text-serif" style={{ fontSize: '2rem', fontWeight: 700, color: 'var(--color-warm-800)', marginBottom: '16px' }}>
-              把繁瑣交給我們，把時間留給家人。
+              把繁瑣交給我們，把時間留給家人
             </h2>
             <p style={{ fontSize: '1.1rem', color: 'var(--color-warm-600)', maxWidth: '700px', margin: '0 auto' }}>
               傳統清明節總是伴隨塞車、聯絡不易與採買繁瑣？今年，您有更好的選擇。
@@ -148,7 +148,7 @@ const LandingPage = ({ onLogin }) => {
                 ✨ 獨家 AI 溫馨重現技術
               </div>
               <h2 className="text-serif" style={{ fontSize: '2.5rem', fontWeight: 700, color: 'var(--color-warm-800)', marginBottom: '24px', lineHeight: 1.2 }}>
-                專屬線上追思牆，<br />喚醒最溫暖的回憶。
+                專屬線上追思牆，<br />喚醒最溫暖的回憶
               </h2>
               <blockquote style={{ fontSize: '1.4rem', fontStyle: 'italic', color: 'var(--color-warm-600)', borderLeft: '4px solid var(--color-brand)', paddingLeft: '20px', margin: '0 0 32px' }}>
                 「還記得爺爺溫暖的笑容嗎？」
@@ -213,11 +213,11 @@ const LandingPage = ({ onLogin }) => {
         <div style={{ position: 'absolute', top: 0, left: '50%', transform: 'translateX(-50%)', width: '800px', height: '400px', background: 'rgba(245, 158, 11, 0.1)', filter: 'blur(100px)', borderRadius: '50%' }}></div>
         <div style={{ maxWidth: '800px', margin: '0 auto', position: 'relative', zIndex: 1 }}>
           <h2 className="text-serif" style={{ fontSize: '2.5rem', fontWeight: 700, color: 'white', marginBottom: '32px', lineHeight: 1.4 }}>
-            時代在變，<br />慎終追遠的心意從未改變。
+            時代在變，<br />慎終追遠的心意從未改變
           </h2>
           <p style={{ fontSize: '1.25rem', color: 'var(--color-warm-200)', lineHeight: 1.8, marginBottom: '48px', fontWeight: 300 }}>
             從一束鮮花到一份福報，從一句留言到一趟春遊，<br />
-            「清明・家聚」陪您圓滿每一個傳承的時刻。
+            「清明・家聚」陪您圓滿每一個傳承的時刻
           </p>
           <button 
             onClick={onLogin}
